@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util
+        http://www.springframework.org/schema/util/spring-util.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--配置自动扫描-->
+    <context:component-scan base-package="com.production">
+        <!--<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"></context:exclude-filter>-->
+    </context:component-scan>
+
+    <!--配置c3p0数据源-->
+    <bean name="myDataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="url" value="jdbc:mysql://localhost:3306/production_ssm?serverTimezone=Asia/Shanghai"></property>
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"></property>
+        <property name="username" value="root"></property>
+        <property name="password" value="123456"></property>
+    </bean>
+    <!-- JDBC事务管理器 -->
+    <bean id="manager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="myDataSource"></property>
+    </bean>
+    <!--service里需要一个事务管理器-->
+    <bean class="org.springframework.transaction.support.TransactionTemplate">
+        <property name="transactionManager" ref="manager"></property>
+    </bean>
+
+    <tx:annotation-driven transaction-manager="manager" proxy-target-class="true"></tx:annotation-driven>
+
+    <!-- 配置SqlSessionFactory， 自动实现dao service直接注入即可 -->
+    <bean id="SessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--<property name="configLocation" value="classpath:Mybatis.xml"/>-->
+        <property name="dataSource" ref="myDataSource"/>
+        <property name="typeAliasesPackage" value="com.production.domain"/>
+        <!--配置Mybatis的pagehelper插件-->
+        <property name="plugins" >
+           <array>
+               <bean class="com.github.pagehelper.PageHelper">
+                   <property name="properties" >
+                       <props>
+                        <prop key="dialect">mysql</prop>
+                         <prop key="reasonable">true</prop>
+                       </props>
+                   </property>
+               </bean>
+           </array>
+        </property>
+    </bean>
+
+    <!--配置的扫描器可以扫描整个dao包 将接口类和xml文件匹配-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.production.dao"/>
+        <property name="sqlSessionFactoryBeanName" value="SessionFactory"/>
+    </bean>
+    <!--web.xml中shiro的filter对应的bean-->
+    <!--realm-->
+    <!--<bean id="customRealm" class="com.production.AuthController.CustomRealm"/>-->
+    <!--&lt;!&ndash;securityManager安全管理器&ndash;&gt;-->
+    <!--<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">-->
+        <!--<property name="realm" ref="customRealm"/>-->
+    <!--</bean>-->
+
+    <!--shiro的web过滤器-->
+    <!--<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">-->
+        <!--<property name="securityManager" ref="securityManager"/>-->
+        <!--&lt;!&ndash;loginUrl认证提交地址,如果没有认证会请求此地址进行认证,-->
+        <!--请求此地址将由formAuthenticationFilter进行表单认证&ndash;&gt;-->
+        <!--<property name="loginUrl" value="/login"/>-->
+        <!--&lt;!&ndash;认证成功统一跳转到first.action,建议不配置,shiro认证成功自动请求路径&ndash;&gt;-->
+        <!--<property name="successUrl" value="/main"/>-->
+        <!--&lt;!&ndash;通过unauthorizedUrl指定没有权限操作时跳转页面&ndash;&gt;-->
+        <!--<property name="unauthorizedUrl" value="/refuse.jsp"/>-->
+        <!--<property name="filterChainDefinitions">-->
+            <!--<value>-->
+                <!--/css/** = anon-->
+                <!--/images/** = anon-->
+                <!--/js/** = anon-->
+                <!--/logout.action = logout-->
+                <!--/** = authc-->
+
+            <!--</value>-->
+        <!--</property>-->
+    <!--</bean>-->
+    <!--文件解析器-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="defaultEncoding" value="UTF-8"/>
+        <property name="maxUploadSize" value="204800"/>
+    </bean>
+</beans>
